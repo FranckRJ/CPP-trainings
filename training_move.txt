@@ -1,0 +1,37 @@
+Expliquer différentes values et leur propriété pour le transfert de données :
+	- lvalue = copyable
+	- xvalue = copyable + movable
+	- prvalue = copyable + movable + copy elidable
+
+Expliquer move (cast en xvalue)
+
+Expliquer pourquoi move un const est inutile (move-construct/assign ne fonctionne que pour non-const, et une rval-ref ne sert qu'à move-construct/assign)
+
+Expliquer pourquoi move une rvalue est inutile (bloque la copy-elision)
+
+Expliquer les forwarding references (bind sur lvalue ref ou rvalue ref)
+
+Expliquer std::forward (explication ici)
+
+Expliquer l'extension de vie des prvalues si elles sont assignées à des références.
+
+rvalue reference = reference vers rvalue, et non une reference de type rvalue
+
+Expliquer ce qui se passe pour les retours de fonctions:
+	Si la variable retournée est une lvalue:
+		- C++11 si les deux types sont identiques et que la variable retournée est auto-storage et locale alors c'est considéré comme une rvalue.
+		- C++14 si la variable retournée est auto-storage et locale alors c'est considéré comme une rvalue.
+		Si l'objet a été considéré comme une rvalue alors il sera copy-elided si possible, sinon moved si possible.
+		Si l'overload resolution rate ou que le type du premier paramètre n'est pas une rvalue-ref, alors l'objet est de nouveau considéré comme une lvalue.
+		Si un paramètre est retourné il ne peut pas être copy-elided pour des raisons techniques, mais sera quand même transformé en rvalue et moved.
+	Si c'est une xvalue:
+		Moved si possible.
+	Si c'est une prvalue:
+		Copy-elided si possible (càd même type que le type de retour de la fonction), ou moved si possible.
+(donc pas besoin de move un retour de fonction)
+
+Résumé:
+	- Uniquement move des lvalue
+	- Ne pas faire de return-move de lvalue si la variable est auto-storage + locale et de même type que retour de fonction
+		- Si le type de la variable ne correspond pas mais que toutes les autres conditions sont OK le return-move n'est pas obligatoire depuis C++14 (et DR pour C++11) mais ne fait pas de mal
+	- Idiom copy and move pour copy-init depuis des paramètres de fonction / constructeur, le paramètre ne doit pas être const sinon ça marche pas
