@@ -17,11 +17,13 @@ std::string otherFunction()
 void expressionVsObject()
 {
 
-    std::string str1, str2; // not an expression
-
-    str1 += str2; // expression identifies object str1
-
-    str1 + str2; // expression identifies an unnamed object
+    std::string str1, str2 /* not an expression */;
+    str1 /* expression refers to object str1 */;
+    str1 += str2 /* expression refers to object str1
+                    through an unnamed lvalue reference */;
+    str1 + str2 /* expression refers to an unnamed object */;
+    5 /* expression refers to a value */;
+    std::string{ "str" } /* expression refers to a value */;
 
 }
 
