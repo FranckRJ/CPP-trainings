@@ -14,6 +14,17 @@ std::string otherFunction()
     return std::string{};
 }
 
+void expressionVsObject()
+{
+
+    std::string str1, str2; // not an expression
+
+    str1 += str2; // expression identifies object str1
+
+    str1 + str2; // expression identifies an unnamed object
+
+}
+
 void lvalueFunction()
 {
 
