@@ -1,21 +1,9 @@
-Expliquer différentes values et leur propriété pour le transfert de données :
-	- lvalue = copyable
-	- xvalue = copyable + movable
-	- prvalue = copyable + movable + copy elidable
+Expliquer les forwarding references (bind sur lvalue ref ou rvalue ref).
+	Expliquer le reference collapsing parce que ça va avec.
 
-Expliquer move (cast en xvalue)
-
-Expliquer pourquoi move un const est inutile (move-construct/assign ne fonctionne que pour non-const, et une rval-ref ne sert qu'à move-construct/assign)
-
-Expliquer pourquoi move une rvalue est inutile (bloque la copy-elision)
-
-Expliquer les forwarding references (bind sur lvalue ref ou rvalue ref)
-
-Expliquer std::forward (explication ici)
+Expliquer std::forward (move conditionnel).
 
 Expliquer l'extension de vie des prvalues si elles sont assignées à des références.
-
-rvalue reference = reference vers rvalue, et non une reference de type rvalue
 
 Expliquer ce qui se passe pour les retours de fonctions:
 	Si la variable retournée est une lvalue:
@@ -28,10 +16,7 @@ Expliquer ce qui se passe pour les retours de fonctions:
 		Moved si possible.
 	Si c'est une prvalue:
 		Copy-elided si possible (càd même type que le type de retour de la fonction), ou moved si possible.
-(donc pas besoin de move un retour de fonction)
+	Expliquer les cas plus complexe quand ce n'est pas un id-expression qui est retourné.
+	Expliquer un peu les améliorations apportées par c++20.
 
-Résumé:
-	- Uniquement move des lvalue
-	- Ne pas faire de return-move de lvalue si la variable est auto-storage + locale et de même type que retour de fonction
-		- Si le type de la variable ne correspond pas mais que toutes les autres conditions sont OK le return-move n'est pas obligatoire depuis C++14 (et DR pour C++11) mais ne fait pas de mal
-	- Idiom copy and move pour copy-init depuis des paramètres de fonction / constructeur, le paramètre ne doit pas être const sinon ça marche pas
+Parler un peu de comment passer les paramètres de fonctions.
