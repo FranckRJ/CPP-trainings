@@ -14,6 +14,16 @@ std::string otherFunction()
     return std::string{};
 }
 
+void movemovemovemove()
+{
+
+    std::string something;
+
+    std::move(something);
+    static_cast<std::string&&>(something);
+
+}
+
 void expressionVsObject()
 {
 
