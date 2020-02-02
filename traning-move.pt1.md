@@ -33,7 +33,7 @@ The only purpose of this is to have the move constructor being chosen during the
 string(const string&);  // 1
 string(string&&);       // 2
 
-// In your code
+// In your code.
 std::string str;
 
 std::string str2{str}; // Copy constructor (1) is used.
@@ -61,7 +61,7 @@ Results of expressions are entities, these entities can be of different types, t
 - **Objects**: Data stored in the memory.
 - **References**: Something that refer to an object (or a function).
 
-*\* It's a little bit more complicated than that, but we will discuss about it more in depth during the part about prvalues.*
+*\* It's a little bit more complicated than that, but we will discuss about it more in depth later.*
 
 ```cpp
 std::string str1, str2; // Only a statement.
@@ -72,12 +72,12 @@ str1 + str2;            // 3
 ```
 
 Here every whole line is a statement, but what's more interesting is the expression behind that statement.
-For **1** the expression is an "id-expression", and it result in the object `str1`.
+For **1** the expression is an "id-expression" (expression that only contains a name), and it result in the object `str1`.
 For **2**, we have a call to function that return a reference, so the result of the expression is an unnamed reference to the object `str1`.
 For **3**, we have a call to a function that return a object, so the result of the expression is an unnamed object.
 And lastly, for **4** we just have a value, nothing more\*.
 
-*\* In fact there is more, but again we will discuss about it more in depth later, during the part about prvalues.*
+*\* In fact there is more, but again we will discuss about it more in depth later.*
 
 ## 2. Values categories of expressions
 
@@ -85,7 +85,7 @@ And lastly, for **4** we just have a value, nothing more\*.
 
 Every expression have a value category, it determines how its result can be used and what operations are available on it.
 
-Historically the only value category were **lvalue** and **rvalue**, it's inherited from C. **Lvalues** were expressions that could appear on the **L**eft hand side of the operator `=`, **rvalues** were expressions that could *only* appear on the **R**ight hand side of an operator `=`.
+Historically the only value category were *lvalue* and *rvalue*, it's inherited from C. **L**values were expressions that could appear on the **L**eft hand side of the operator `=`, **R**values were expressions that could *only* appear on the **R**ight hand side of an operator `=`.
 
 Since C++11 it's more complicated, here is a graph that shows the different values categories:
 ```
@@ -116,4 +116,171 @@ The most important uses for the move semantics is how an expression can be used 
 
 An expression can still be converted to another expression with a different value category, sometimes even implicitly.
 
-### 2.2. Identifying value categories
+### 2.2. Value categories
+
+Values categories have two properties that distinguish them. The first one is if they have an *identity*, it means that you can compare the result of two expressions to know if they are the same object, by comparing the addresses of these results. The second one is if they are *movable*, that means you can use the expression as a parameter for a move constructor, or anything that take a rvalue reference of the same type as the result of the expression.
+
+Glvalue is the group of expressions that have an identity, and because of this you can have another expression in another statement that will have the same result. The result object is not limited to the statement of the expression.
+Rvalue is the group of expressions that can be used as parameter for a move constructor, and because of this it means the value of their result will not be used anymore, it can be safely stolen in the move constructor.
+
+#### 2.2.1. Properties of lvalues
+
+They have an identity, you can use the unary operator `&` on it to know their address, but they aren't movable because you can't use them as parameter in a move constructor.
+
+```cpp
+// Somewhere in a header.
+OnlyMovableObject();
+OnlyMovableObject(const OnlyMovableObject&) = delete;
+OnlyMovableObject(OnlyMovableObject&&);
+
+// In your code.
+OnlyMovableObject obj;
+OnlyMovableObject& ref = obj;
+
+&(obj) == &(ref);                  // 1: Valid code.
+OnlyMovableObject otherObj{(obj)}; // 2: Invalid code.
+OnlyMovableObject otherObj{(ref)}; // 3: Invalid code.
+```
+*I've put parenthesis around variables names to be able to differentiate the id-expression (expression that only contain a name) and the variable in itself).*
+ 
+As you can see in **1**, you can compare the addresses of `(obj)` and `(ref)`, so they have both an identity, and as you can see in **2** and **3**, you can't use them to move-construct an object, so they aren't movable. So `(obj)` and `(ref)` are both lvalues.
+
+You can think of lvalues as expressions where the result need to be fully usable after the end of the statement. That means you can't steal (move) the data it contains and that there should be a name that make the object accessible again. So basically it's a named object / reference (I will detail how to identify lvalues later).
+
+#### 2.2.2. Properties of xvalues
+
+They have an identity, you can't use the unary operator `&` directly on it but you should be able to access it from elsewhere. They are movable because you can use them as parameter in a move constructor.
+
+```cpp
+// Somewhere in a header.
+OnlyMovableObject();
+OnlyMovableObject(const OnlyMovableObject&) = delete;
+OnlyMovableObject(OnlyMovableObject&&);
+
+// In your code.
+OnlyMovableObject obj;
+
+&(std::move(obj));                            // 1: Invalid code.
+&(obj);                                       // 2: Valid code.
+OnlyMovableObject otherObj{(std::move(obj))}; // 3: Valid code.
+```
+
+The first thing to notice here in **1** is that you can't take the address of `(std::move(obj))`, but because you know it results in a rvalue reference to `obj` then you can take the address of `(obj)` and it will be the same, so the expression has an identity. Then in **3** you can see that you can use the expression as a parameter to a move constructor, so it's movable.
+
+You can think of xvalues as expression that results in an expiring object (like in the name). That means the value of the object will not be needed after the end of the statement (you can steal it), but the object itself will still be accessible and used, that's why it need to be kept in a valid state. So basically it's a unnamed rvalue reference (I will detail how to identify xvalues later).
+
+#### 2.2.3. Properties of prvalues
+
+They don't have an identity, you can't use the unary operator `&` in it nor you can do it from elsewhere, but they can be used as a parameter of a move constructor.
+
+```cpp
+// Somewhere in a header.
+OnlyMovableObject();
+OnlyMovableObject(const OnlyMovableObject&) = delete;
+OnlyMovableObject(OnlyMovableObject&&);
+
+// In your code.
+&(OnlyMovableObject{});                            // 1: Invalid code.
+OnlyMovableObject otherObj{(OnlyMovableObject{})}; // 2: Valid code.
+```
+
+As you can see in **1**, it's impossible to get the address of a prvalue because in fact its result is not an object, it's just a value, so it's not stored in the memory. Then in **2**, we can see that it's possible to use a prvalue to move construct an object, so it's movable, in fact the move constructor won't even be called here, because copy elision will happen (like we've seen earlier). A prvalue is only available in the expression that created it, so in the next statement it won't be accessible by any mean.
+
+I know it may be unclear why the result of a prvalues isn't an object, but just a value, because in fact in the above example what I create is what we commonly call an unnamed object. So for now, just remember that in C++17 unnamed objects aren't objects, but values, and that values aren't in the memory but are used to create objects that will be in the memory, we will see how it really work in the in-depth part about copy elision.
+
+#### 2.2.4. Identifying value categories
+
+OK, I've said a lot of "we will see later", now time has come to see some of them. We will see what kind of expressions are lvalues, xvalues, and prvalues, and why. Let's start with a reminder:
+
+|                     |glvalue|rvalue|lvalue|xvalue|prvalue|
+|--------------------:|:-----:|:----:|:----:|:----:|:-----:|
+|  **has an identity**|      ✓|      |     ✓|     ✓|       |
+|**can be moved from**|       |     ✓|      |     ✓|      ✓|
+
+Now let's identify some expressions.
+
+```cpp
+std::string obj;
+std::string& objLRef = obj;
+std::string& lRefFunc();
+std::string&& objRRef = std::move(obj);
+std::pair<int, int> pairObj;
+
+(obj);             // 1
+(objLRef);         // 2
+(lRefFunc());      // 3
+(objRRef);         // 4
+(pairObj.first);   // 5
+```
+
+All of the numbered lines contains lvalues expressions, we've already seen why for **1** and **2** so I will just talk about the others.
+For **3**, we have a call to a function that return an unnamed lvalue reference, it's like a named reference it has the same properties, that's why it's an lvalue.
+For **4** it's a little less obvious because we have an rvalue reference, but rvalue references just means that the reference can only be bound to an rvalue, after that you have a name that refer to your object, so its value shouldn't be stolen by someone.
+For **5**, we have a sub-object of an lvalue, it follow the same principles as the others, so the expression is an lvalue.
+
+To summary, expressions that result in named objects / rvalue references or lvalue references (named or not) are lvalues, as well as sub-objects of these expressions.
+
+```cpp
+std::string obj;
+std::string&& rRefFunc();
+
+(std::move(obj));                // 1
+(rRefFunc());                    // 2
+(std::pair<int, int>{}.first);   // 3
+(std::move(obj).first);          // 4
+```
+
+Here, all the numbered lines contains xvalues expressions, we've already seen why **1** is an xvalue, and it fact it's the same for **2** (they are both functions that return an rvalue reference). Let's see for the others.
+So, **3** isn't an lvalue because we can move construct an object from it, why ? Because its value won't be available in the next statement, the object is expiring. Now why it's not a prvalue ? Because we can know its address: inside the destructor of `std::pair` we will be able to do `&first`. It can be moved from and it has an identity, so it's an xvalue.
+For **4** it's the same as **3**, we said that the `std::pair` is expiring (as well as its sub-objects) but we will still be able to access its address from anywhere in the scope (because the `std::pair` is just an xvalue this time). So that why it's also an xvalue.
+
+Now you may ask *"if we can know the address of `first` inside the destructor of `std::pair`, we can know the address of the `std::pair` as well, so why it's a prvalue ?"*. We will see that in the next chapter.
+
+To summary, expressions that result in an unnamed rvalue reference or in a sub-object of an rvalue (static data members aren't sub-objects) are xvalues.
+
+```cpp
+std::string objFunc();
+
+(std::string{});                // 1
+(objFunc());                    // 2
+```
+
+This one will be short, we've already seen why **1** is a prvalue, and it's the same thing for **2**: in both case we have a function that return an unnamed object, in **1** because we call the constructor on an unnamed object, in **2** because we just call a function that return an object (so it can't have a name). And because we've seen that unnamed objects are just values, and that prvalues result in values, then they are prvalue.
+
+To summary, expressions that result in an unnamed object (value) are prvalues.
+
+## 3. The subtleties of prvalues
+
+### 3.1. Temporary materialization
+
+```cpp
+class PrintOwnAddr
+{
+public:
+    void printAddr() { std::cout << this << std::endl; }
+};
+
+(PrintOwnAddr{}).printAddr(); // Print something like "0x7ffe973cfb6f".
+```
+
+How does it work ? How does the prvalue can have access to its address if it's suppose to be a value not it the memory, so without an address ? It's because of *temporary materialization*.
+
+When an object is needed for computation, but the expression used is just a prvalue, then a temporary object is materialized, effectively converting the prvalue to an xvalue.
+In the example above we try to access a member of a prvalue, this will materialize a temporary object, allowing us to do so.
+
+Here some examples of things that materialize a temporary object:
+
+```cpp
+void function(const std::pair&);
+
+(std::pair<int, int>{}).first;        // 1
+function((std::pair<int, int>{}));    // 2
+(std::pair<int, int>{});              // 3
+```
+
+We've already seen why **1** materialize a temporary object, for **2** it's not really different, a reference cannot be bound to a value, it needs an object, that's why a temporary object is materialized.
+For the last one, **3**, it's a little bit more interesting, we do nothing with the prvalue, so why a temporary object should be materialized ? Because it will be strange to not have a constructor and a destructor called for something like this. It's called a *discarded expression*, it's when the result of the expression isn't used for anything, in this case a temporary object will be materialized only to be able to call the constructor and destructor.
+
+### 3.2. Guaranteed copy elision
+
+And finally, the part that will explain how prvalues actually work, what's really behind them.
