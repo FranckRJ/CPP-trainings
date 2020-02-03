@@ -349,7 +349,7 @@ VerboseParameter default constructor.
 VerboseClass parameter constructor.
 ```
 
-In **1** we create a prvalue that isn't the same type as the return of the function, so no copy elision happen between **1** and **2**, just a conversion from `VerboseParameter` to `VerboseClass`, and then we have a copy elision between **2** and **3**.  
+In **1** we create a prvalue that isn't of the same type as the return of the function, so no copy elision happen between **1** and **2**, just a conversion from `VerboseParameter` to `VerboseClass`, and then we have a copy elision between **2** and **3**.  
 
 ### 3.3. Guaranteed copy elision: How the compiler implement it  
 
