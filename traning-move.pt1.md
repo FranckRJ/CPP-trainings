@@ -281,6 +281,74 @@ function((std::pair<int, int>{}));    // 2
 We've already seen why **1** materialize a temporary object, for **2** it's not really different, a reference cannot be bound to a value, it needs an object, that's why a temporary object is materialized.
 For the last one, **3**, it's a little bit more interesting, we do nothing with the prvalue, so why a temporary object should be materialized ? Because it will be strange to not have a constructor and a destructor called for something like this. It's called a *discarded expression*, it's when the result of the expression isn't used for anything, in this case a temporary object will be materialized only to be able to call the constructor and destructor.
 
-### 3.2. Guaranteed copy elision
+### 3.2. Guaranteed copy elision: What the standard says
 
 And finally, the part that will explain how prvalues actually work, what's really behind them.
+
+Because it's easier to understand with an example:
+
+```cpp
+VerboseClass iBuildStuff()
+{
+           // 1
+    return VerboseClass{};
+}
+
+int main()
+{                // 3      // 2
+    VerboseClass imStuff = iBuildStuff();
+    return 0;
+}
+```
+
+*`VerboseClass` is a class that print a message when one of its constructor is called.*
+
+What happens when copy elision is disabled (only possible with C++14):
+
+```
+// flags "-fno-elide-constructors --std=c++14"
+VerboseClass default constructor.
+VerboseClass move constructor.
+VerboseClass move constructor.
+```
+
+And what happens when copy elision isn't disabled:
+
+```
+// flags "--std=c++14"
+VerboseClass default constructor.
+```
+
+Why ? Because of prvalues.
+When copy elision is disabled, in **1** we create an rvalue, in **2** the rvalue is moved to the return slot of the function, and in **3** it's used for the move constructor of `imStuff`. But copy elision is never disabled in practice, and it's not a simple rvalue: it's a prvalue. Because you can see prvalues as just values, without any object in memory, then the move of the value from **1** to **2** and **2** to **3** is free: there isn't any object to move, the object in **3** is directly constructed from the value in **1**.
+
+To have a copy elision, you just need to have an object initialized from a prvalue of the same type. If it's not of the same type, then a conversion will need to be done, effectively creating another object.
+If we take the example above but instead of returning a `VerboseClass` from the function we return something that can be used to construct a `VerboseClass`:
+
+```cpp
+VerboseClass iBuildStuffFromParam()
+{
+           // 1
+    return VerboseParameter{};
+}
+
+int main()
+{                // 3      // 2
+    VerboseClass imStuff = iBuildStuffFromParam();
+    return 0;
+}
+```
+
+*`VerboseParameter` is like `VerboseClass`, it's a class that print a message when one of its constructor is called, but it can be used to construct a `VerboseClass`.*
+
+```
+// flags "--std=c++14"
+VerboseParameter default constructor.
+VerboseClass parameter constructor.
+```
+
+In **1** we create a prvalue that isn't the same type as the return of the function, so no copy elision happen between **1** and **2**, just a conversion from `VerboseParameter` to `VerboseClass`, and then we have a copy elision between **2** and **3**.
+
+### 3.3. Guaranteed copy elision: How the compiler implement it
+
+There isn't any magic behind copy elision, the compiler can't just magically hold values somewhere without having something in the memory.
