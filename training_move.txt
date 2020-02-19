@@ -31,6 +31,7 @@ Implicite move.
 
 Part 2.
 Construction inplace.
+Lifetime extension.
 
 
 

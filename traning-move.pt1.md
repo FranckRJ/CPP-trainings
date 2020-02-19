@@ -1,4 +1,3 @@
-
 # Move semantics part 1  
 
 **Disclaimer**: What I will describe here is what the standard says for C++17, but it also apply to C++14 if the compiler support copy elision (and if it's not disabled), what every sane compiler should do.  
@@ -353,4 +352,52 @@ In **1** we create a prvalue that isn't of the same type as the return of the fu
 
 ### 3.3. Guaranteed copy elision: How the compiler implement it  
 
-There isn't any magic behind copy elision, the compiler can't just magically hold values somewhere without having something in the memory.  
+There isn't any magic behind copy elision, the compiler can't just magically hold values somewhere without having something in the memory. What happens in fact is that the compiler knows where the temporary will be materialized at the end in advance, so when the prvalue is created an object is directly constructed in its final destination, let's see this with an example.  
+
+```cpp
+SuperVerboseClass iBuildStuff()
+{
+    SuperVerboseClass noisyStuff{123};
+           // 1
+    return SuperVerboseClass{1};
+}
+
+int main()
+{
+    SuperVerboseClass firstStuff{0};
+                      // 3          // 2
+    SuperVerboseClass secondStuff = iBuildStuff();
+    SuperVerboseClass thirdStuff{2};
+    return 0;
+}
+```
+
+*`SuperVerboseClass` is a class that print a message when one of its constructor is called, showing its address and its id (constructor parameter).*  
+
+What happens when copy elision is disabled (only possible with C++14):  
+
+```
+// flags "-fno-elide-constructors --std=c++14"
+VerboseClass arg constructor. (0: 0x78)
+VerboseClass arg constructor. (123: 0x40)
+VerboseClass arg constructor. (1: 0x38)
+VerboseClass move constructor. (1: 0x68)
+VerboseClass move constructor. (1: 0x70)
+VerboseClass arg constructor. (2: 0x60)
+```
+
+And what happens when copy elision isn't disabled:  
+
+```
+// flags "--std=c++14"
+VerboseClass arg constructor. (0: 0x78)
+VerboseClass arg constructor. (123: 0x40)
+VerboseClass arg constructor. (1: 0x70)
+VerboseClass arg constructor. (2: 0x68)
+```
+
+### TODO 3.4. What C++17 bring us  
+
+## TODO 4. NRVO  
+
+It's big.  
