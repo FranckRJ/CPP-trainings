@@ -401,7 +401,7 @@ What's interesting is when copy elision is enabled: the object with id *1* is ne
 
 ### 3.4. What C++17 brings us  
 
-In the beginning I've said that what the standard says for C++17 apply for C++14 as well if copy elision is not disabled, that's not 100% true, there is one new feature that the guaranteed copy elision brings us: \*moving\* unmovable types. In fact we're not moving anything, because the move part is elided, but when you see the code it looks like it. Here's an example.  
+In the beginning I've said that what the standard says for C++17 apply for C++14 as well if copy elision is not disabled, that's not 100% true, there is one new feature that the guaranteed copy elision brings us: "moving" unmovable types. In fact we're not moving anything, because the move part is elided, but when you see the code it looks like we do. Here's an example:  
 
 ```cpp
 UnmovableClass iBuildStuff()
