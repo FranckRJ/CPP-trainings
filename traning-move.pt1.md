@@ -358,14 +358,14 @@ There isn't any magic behind copy elision, the compiler can't just magically hol
 SuperVerboseClass iBuildStuff()
 {
     SuperVerboseClass noisyStuff{123};
-           // 1
+           // A
     return SuperVerboseClass{1};
 }
 
 int main()
 {
     SuperVerboseClass firstStuff{0};
-                      // 3          // 2
+                      // C          // B
     SuperVerboseClass secondStuff = iBuildStuff();
     SuperVerboseClass thirdStuff{2};
     return 0;
@@ -378,23 +378,56 @@ What happens when copy elision is disabled (only possible with C++14):
 
 ```
 // flags "-fno-elide-constructors --std=c++14"
-VerboseClass arg constructor. (0: 0x78)
-VerboseClass arg constructor. (123: 0x40)
-VerboseClass arg constructor. (1: 0x38)
-VerboseClass move constructor. (1: 0x68)
-VerboseClass move constructor. (1: 0x70)
-VerboseClass arg constructor. (2: 0x60)
+SuperVerboseClass arg constructor. (0: 0x78)
+SuperVerboseClass arg constructor. (123: 0x40)
+SuperVerboseClass arg constructor. (1: 0x38)
+SuperVerboseClass move constructor. (1: 0x68)
+SuperVerboseClass move constructor. (1: 0x70)
+SuperVerboseClass arg constructor. (2: 0x60)
 ```
 
 And what happens when copy elision isn't disabled:  
 
 ```
 // flags "--std=c++14"
-VerboseClass arg constructor. (0: 0x78)
-VerboseClass arg constructor. (123: 0x40)
-VerboseClass arg constructor. (1: 0x70)
-VerboseClass arg constructor. (2: 0x68)
+SuperVerboseClass arg constructor. (0: 0x78)
+SuperVerboseClass arg constructor. (123: 0x40)
+SuperVerboseClass arg constructor. (1: 0x70)
+SuperVerboseClass arg constructor. (2: 0x68)
 ```
-There is not much to talk about when copy elision is disabled, because as you can see every object is constructed where you see them in the code
 
-### TODO 3.4. What C++17 bring us  
+There is not much to talk about when copy elision is disabled, because as you can see every object is constructed where you see the constructor call in the code, the addresses of the object with id *123* is next to the one with id *1* (step **A**), and between the object with id *0* and *2* there is every new object move constructed from the object with id *1* (step **B** and **C**).  
+What's interesting is when copy elision is enabled: the object with id *1* is never near the object with id *123* in memory, even if the constructor call is made in the same function. The compiler know that the object with id *1* will go through step **A** to step **C**, so it's directly constructed in place of step **C**, just between the object with id *0* and *2*. The compiler know that because every function that return something have a return slot, it's a place in memory where the returned object should be moved, and when copy elision is enabled the returned object is directly constructed into this slot instead of being moved into. Here the return slot is at step **B**, but because the object in this slot will be used to move-construct another object (in step **C**), the compiler understand that there is a chain of return slot -> object construction and tell the function that its return slot will be at step **C** directly, skipping everything else. That's why the constructor call in **A** construct, in fact, the object located at **C**.  
+
+### 3.4. What C++17 brings us  
+
+In the beginning I've said that what the standard says for C++17 apply for C++14 as well if copy elision is not disabled, that's not 100% true, there is one new feature that the guaranteed copy elision brings us: \*moving\* unmovable types. In fact we're not moving anything, because the move part is elided, but when you see the code it looks like it. Here's an example.  
+
+```cpp
+UnmovableClass iBuildStuff()
+{
+    return UnmovableClass{};
+}
+
+int main()
+{
+    UnmovableClass stuff = iBuildStuff();
+    return 0;
+}
+```
+
+*`UnmovableClass` is a class with a deleted copy / move - constructor / assignment.*  
+
+If you compile this in C++14 you get the error `error: use of deleted function 'UnmovableClass::UnmovableClass(UnmovableClass&&)'`, even with copy elision enabled. Why ? The method isn't called if copy elision is enabled, but every compiler should follow the "as-if" rule, meaning that they can interpret what the standard say how they want as long as it doesn't impact the "observable behavior". To keep it short, if the code doesn't compile while following strictly was the standard says, it shouldn't compile no matter what optimization you have enabled. Because the example above call the move constructor of `UnmovableClass` per the C++14 standard, then the move constructor should be callable even if it is elided.  
+In C++17 however, because copy elision for prvalues is part of the standard, no compiler should ever call the move constructor in this case, so it will compile without any error or warning on every compiler that follow the C++17 standard.  
+There is a pattern called AAA (almost always auto), that says that almost every variable should be declared with the keyword `auto` and that if an explicit type is needed, it should be written after the = sign, like this:  
+
+```cpp
+auto stuff = UnmovableClass{}; // Error in C++14: call deleted move constructor
+```
+
+I let you judge if it's a good style or not, but as you can see in C++14 this pattern had some limitations on which type it could have been used, now with C++17 most of these limitations are lifted, so you can use this pattern with unmovable types like `std::lock_guard`.  
+
+## Conclusion  
+
+Don't now what to say for now, but i don't want to end without an ending note.  
