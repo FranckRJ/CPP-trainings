@@ -29,10 +29,6 @@ Séparer les types d'expressions pour subobject et complete objects.
 RVO est faite à la compilation, le prouver (NTTP bool etc).
 Implicite move.
 
-Part 2.
-Construction inplace.
-Lifetime extension.
-
 
 
 https://godbolt.org/z/y2viDD

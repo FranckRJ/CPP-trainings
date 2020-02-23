@@ -395,9 +395,6 @@ VerboseClass arg constructor. (123: 0x40)
 VerboseClass arg constructor. (1: 0x70)
 VerboseClass arg constructor. (2: 0x68)
 ```
+There is not much to talk about when copy elision is disabled, because as you can see every object is constructed where you see them in the code
 
 ### TODO 3.4. What C++17 bring us  
-
-## TODO 4. NRVO  
-
-It's big.  
