@@ -1,1 +1,1 @@
-training-move
+trainings
