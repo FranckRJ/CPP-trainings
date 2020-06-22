@@ -28,9 +28,8 @@ public:
 
     Expektid(const Expektid&) = delete;
 
-    Expektid(Expektid&& other) noexcept : result{std::move(other.result)}, checked{other.checked}
+    Expektid(Expektid&& other) noexcept : result{std::move(other.result)}, checked{std::exchange(other.checked, true)}
     {
-        other.checked = true;
     }
 
     Expektid& operator=(const Expektid&) = delete;
@@ -50,6 +49,16 @@ public:
 
     SuccessType& operator*()
     {
+        return getValue();
+    }
+
+    SuccessType* operator->()
+    {
+        return &(getValue());
+    }
+
+    SuccessType& getValue()
+    {
         if (!resultIsSuccess() || !checked)
         {
             checked = true;
@@ -59,15 +68,15 @@ public:
         return std::get<0>(result);
     }
 
-    SuccessType* operator->()
+    FailureType& getError()
     {
-        if (!resultIsSuccess() || !checked)
+        if (resultIsSuccess() || !checked)
         {
             checked = true;
-            throw std::runtime_error{"Value not checked or not success."};
+            throw std::runtime_error{"Value not checked or not failed."};
         }
 
-        return &(std::get<0>(result));
+        return std::get<1>(result);
     }
 
 private:

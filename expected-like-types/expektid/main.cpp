@@ -32,16 +32,16 @@ int main()
 
         if (expected)
         {
-            std::cout << "Return value is: " << expected->value << '\n';
+            std::cout << "Func succeed with result: " << expected->value << '\n';
         }
         else
         {
-            std::cout << "Error in func\n";
+            std::cout << "Func failed with error: " << expected.getError().message << "\n";
         }
     }
     catch (const std::exception& e)
     {
-        std::cerr << e.what() << '\n';
+        std::cerr << "Shouldn't happen unless there is a bug in the program: " << e.what() << '\n';
     }
     return 0;
 }
