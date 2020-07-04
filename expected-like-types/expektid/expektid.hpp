@@ -9,6 +9,13 @@
 template <class SuccessType, class FailureType>
 class [[nodiscard]] Expektid
 {
+private:
+    enum class Status : char
+    {
+        Unused,
+        Used,
+        Checked
+    };
 public:
     Expektid(const SuccessType& success) : result{success}
     {
@@ -20,16 +27,16 @@ public:
 
     ~Expektid() noexcept(false)
     {
-        if (!checked)
+        if (status == Status::Unused)
         {
-            checked = true;
             throw std::runtime_error{"Value not checked."};
         }
     }
 
     Expektid(const Expektid&) = delete;
 
-    Expektid(Expektid&& other) noexcept : result{std::move(other.result)}, checked{std::exchange(other.checked, true)}
+    Expektid(Expektid&& other) noexcept
+        : result{std::move(other.result)}, status{std::exchange(other.status, Status::Used)}
     {
     }
 
@@ -38,13 +45,13 @@ public:
     Expektid& operator=(Expektid&& other) noexcept
     {
         result = std::move(other.result);
-        checked = std::exchange(other.checked, true);
+        status = std::exchange(other.status, Status::Used);
         return *this;
     }
 
     operator bool()
     {
-        checked = true;
+        status = Status::Checked;
         return resultIsSuccess();
     }
 
@@ -60,17 +67,21 @@ public:
 
     SuccessType& getValue()
     {
-        if (!resultIsSuccess() || !checked)
+        if (!resultIsSuccess() || status != Status::Checked)
         {
-            checked = true;
             throw std::runtime_error{"Value not checked or not success."};
         }
 
         return std::get<0>(result);
     }
 
-    SuccessType getValueOr(SuccessType orThis) const
+    SuccessType getValueOr(SuccessType orThis)
     {
+        if (status != Status::Checked)
+        {
+            status = Status::Used;
+        }
+
         if (resultIsSuccess())
         {
             return std::get<0>(result);
@@ -83,9 +94,8 @@ public:
 
     FailureType& getError()
     {
-        if (resultIsSuccess() || !checked)
+        if (resultIsSuccess() || status != Status::Checked)
         {
-            checked = true;
             throw std::runtime_error{"Value not checked or not failed."};
         }
 
@@ -99,5 +109,5 @@ private:
     }
 
     std::variant<SuccessType, FailureType> result;
-    bool checked = false;
+    Status status = Status::Unused;
 };
