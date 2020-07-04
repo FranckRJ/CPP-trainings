@@ -1,3 +1,4 @@
+#pragma warning(disable : 4068)
 #pragma ide diagnostic ignored "google-explicit-constructor"
 
 #pragma once
@@ -6,7 +7,7 @@
 #include <variant>
 
 template <class SuccessType, class FailureType>
-class Expektid
+class [[nodiscard]] Expektid
 {
 public:
     Expektid(const SuccessType& success) : result{success}
@@ -68,6 +69,18 @@ public:
         return std::get<0>(result);
     }
 
+    SuccessType getValueOr(SuccessType orThis) const
+    {
+        if (resultIsSuccess())
+        {
+            return std::get<0>(result);
+        }
+        else
+        {
+            return orThis;
+        }
+    }
+
     FailureType& getError()
     {
         if (resultIsSuccess() || !checked)
@@ -80,7 +93,7 @@ public:
     }
 
 private:
-    bool resultIsSuccess()
+    [[nodiscard]] bool resultIsSuccess() const
     {
         return (result.index() == 0);
     }

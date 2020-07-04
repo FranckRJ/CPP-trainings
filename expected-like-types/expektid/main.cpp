@@ -2,21 +2,16 @@
 
 #include "expektid.hpp"
 
-struct Success
-{
-    int value;
-};
-
 struct Error
 {
     std::string message;
 };
 
-Expektid<Success, Error> doStuff(bool shouldSuccess)
+Expektid<std::string, Error> doStuff(bool shouldSuccess)
 {
     if (shouldSuccess)
     {
-        return Success{5};
+        return std::string{"all good !"};
     }
     else
     {
@@ -30,9 +25,11 @@ int main()
     {
         auto expected = doStuff(true);
 
+        std::cout << "Func maybe returned: " << expected.getValueOr("default value") << '\n';
+
         if (expected)
         {
-            std::cout << "Func succeed with result: " << expected->value << '\n';
+            std::cout << "Func succeed with result: " << expected.getValue() << '\n';
         }
         else
         {
