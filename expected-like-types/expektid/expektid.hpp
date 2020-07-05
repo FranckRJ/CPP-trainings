@@ -27,7 +27,7 @@ public:
 
     ~Expektid() noexcept(false)
     {
-        if (status == Status::Unused)
+        if (status == Status::Unused && std::uncaught_exceptions() == 0)
         {
             throw std::runtime_error{"Value not checked."};
         }
