@@ -23,22 +23,22 @@ int main()
 {
     try
     {
-        auto expected = doStuff(true);
+        auto expected = doStuff(false);
 
-        std::cout << "Func maybe returned: " << expected.getValueOr("default value") << '\n';
+        std::cout << "Func maybe returned: " << expected.valueOr("default value") << '\n';
 
         if (expected)
         {
-            std::cout << "Func succeed with result: " << expected.getValue() << '\n';
+            std::cout << "Func succeed with result: " << expected.value() << '\n';
         }
         else
         {
-            std::cout << "Func failed with error: " << expected.getError().message << "\n";
+            std::cout << "Func failed with error: " << expected.error().message << "\n";
         }
     }
     catch (const std::exception& e)
     {
-        std::cerr << "Shouldn't happen unless there is a bug in the program: " << e.what() << '\n';
+        std::cerr << "Shouldn't happen: " << e.what() << '\n';
     }
     return 0;
 }

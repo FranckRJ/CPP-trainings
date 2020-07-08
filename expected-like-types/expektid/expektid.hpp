@@ -3,10 +3,9 @@
 
 #pragma once
 
-#include <stdexcept>
 #include <variant>
 
-template <class SuccessType, class FailureType>
+template <class ValueType, class ErrorType>
 class [[nodiscard]] Expektid
 {
 private:
@@ -17,11 +16,11 @@ private:
         Checked
     };
 public:
-    Expektid(const SuccessType& success) : result{success}
+    Expektid(const ValueType& val) : result{val}
     {
     }
 
-    Expektid(const FailureType& failure) : result{failure}
+    Expektid(const ErrorType& err) : result{err}
     {
     }
 
@@ -29,7 +28,7 @@ public:
     {
         if (status == Status::Unused && std::uncaught_exceptions() == 0)
         {
-            throw std::runtime_error{"Value not checked."};
+            logAndTerminate("~Expektid(): Value not checked.");
         }
     }
 
@@ -52,37 +51,37 @@ public:
     operator bool()
     {
         status = Status::Checked;
-        return resultIsSuccess();
+        return holdValue();
     }
 
-    SuccessType& operator*()
+    ValueType& operator*()
     {
-        return getValue();
+        return value();
     }
 
-    SuccessType* operator->()
+    ValueType* operator->()
     {
-        return &(getValue());
+        return &(value());
     }
 
-    SuccessType& getValue()
+    ValueType& value()
     {
-        if (!resultIsSuccess() || status != Status::Checked)
+        if (!holdValue() || status != Status::Checked)
         {
-            throw std::runtime_error{"Value not checked or not success."};
+            logAndTerminate("value(): Value not checked or is error.");
         }
 
         return std::get<0>(result);
     }
 
-    SuccessType getValueOr(SuccessType orThis)
+    ValueType valueOr(const ValueType& orThis)
     {
         if (status != Status::Checked)
         {
             status = Status::Used;
         }
 
-        if (resultIsSuccess())
+        if (holdValue())
         {
             return std::get<0>(result);
         }
@@ -92,22 +91,28 @@ public:
         }
     }
 
-    FailureType& getError()
+    ErrorType& error()
     {
-        if (resultIsSuccess() || status != Status::Checked)
+        if (holdValue() || status != Status::Checked)
         {
-            throw std::runtime_error{"Value not checked or not failed."};
+            logAndTerminate("error(): Value not checked or is not error.");
         }
 
         return std::get<1>(result);
     }
 
 private:
-    [[nodiscard]] bool resultIsSuccess() const
+    [[nodiscard]] bool holdValue() const
     {
         return (result.index() == 0);
     }
 
-    std::variant<SuccessType, FailureType> result;
+    [[noreturn]] static void logAndTerminate(std::string_view str)
+    {
+        std::cerr << str << "\n";
+        std::terminate();
+    }
+
+    std::variant<ValueType, ErrorType> result;
     Status status = Status::Unused;
 };
