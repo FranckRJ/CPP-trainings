@@ -5,6 +5,12 @@
 
 #include <variant>
 
+#define EXPEKTID_CONCAT_STR_(first_, second_) first_ ## second_
+#define EXPEKTID_VAL_OR_RET_ERR(varName_, call_) auto EXPEKTID_CONCAT_STR_(tmp_, varName_) = call_; \
+    if (!EXPEKTID_CONCAT_STR_(tmp_, varName_)) return EXPEKTID_CONCAT_STR_(tmp_, varName_).error(); \
+    auto varName_ = EXPEKTID_CONCAT_STR_(tmp_, varName_).value();                                   \
+    do{}while(false)
+
 template <class ValueType, class ErrorType>
 class [[nodiscard]] Expektid
 {
@@ -24,7 +30,7 @@ public:
     {
     }
 
-    ~Expektid() noexcept(false)
+    ~Expektid()
     {
         if (status == Status::Unused && std::uncaught_exceptions() == 0)
         {

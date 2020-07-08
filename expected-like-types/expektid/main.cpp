@@ -19,11 +19,18 @@ Expektid<std::string, Error> doStuff(bool shouldSuccess)
     }
 }
 
+Expektid<std::string, Error> callDoStuff(bool shouldSuccess)
+{
+    EXPEKTID_VAL_OR_RET_ERR(baseRes, doStuff(shouldSuccess));
+    EXPEKTID_VAL_OR_RET_ERR(combinedRes, doStuff(!baseRes.empty()));
+    return combinedRes;
+}
+
 int main()
 {
     try
     {
-        auto expected = doStuff(false);
+        auto expected = callDoStuff(false);
 
         std::cout << "Func maybe returned: " << expected.valueOr("default value") << '\n';
 
