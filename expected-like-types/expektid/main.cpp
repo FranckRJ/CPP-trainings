@@ -30,7 +30,7 @@ int main()
 {
     try
     {
-        auto expected = callDoStuff(false);
+        auto expected = callDoStuff(true);
 
         std::cout << "Func maybe returned: " << expected.valueOr("default value") << '\n';
 
@@ -42,6 +42,9 @@ int main()
         {
             std::cout << "Func failed with error: " << expected.error().message << "\n";
         }
+
+        auto size = expected.mapButEasierToExplain<std::size_t>(&std::string::size);
+        std::cout << "Size of str is maybe: " << size.valueOr(153) << '\n';
     }
     catch (const std::exception& e)
     {

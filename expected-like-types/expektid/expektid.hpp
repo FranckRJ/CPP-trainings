@@ -4,6 +4,7 @@
 #pragma once
 
 #include <variant>
+#include <functional>
 
 #define EXPEKTID_CONCAT_STR_(first_, second_) first_ ## second_
 #define EXPEKTID_VAL_OR_RET_ERR(varName_, call_) auto EXPEKTID_CONCAT_STR_(tmp_, varName_) = call_; \
@@ -57,7 +58,7 @@ public:
     operator bool()
     {
         status = Status::Checked;
-        return holdValue();
+        return hasValueInternal();
     }
 
     ValueType& operator*()
@@ -72,12 +73,12 @@ public:
 
     ValueType& value()
     {
-        if (!holdValue() || status != Status::Checked)
+        if (!hasValueInternal() || status != Status::Checked)
         {
             logAndTerminate("value(): Value not checked or is error.");
         }
 
-        return std::get<0>(result);
+        return valueInternal();
     }
 
     ValueType valueOr(const ValueType& orThis)
@@ -87,9 +88,9 @@ public:
             status = Status::Used;
         }
 
-        if (holdValue())
+        if (hasValueInternal())
         {
-            return std::get<0>(result);
+            return valueInternal();
         }
         else
         {
@@ -97,20 +98,66 @@ public:
         }
     }
 
+    template <typename CallableType>
+    auto map(CallableType&& callable) -> Expektid<decltype(std::invoke(callable, std::declval<ValueType>())), ErrorType>
+    {
+        if (status != Status::Checked)
+        {
+            status = Status::Used;
+        }
+
+        if (hasValueInternal())
+        {
+            return std::invoke(callable, valueInternal());
+        }
+        else
+        {
+            return errorInternal();
+        }
+    }
+
+    template <typename NewValueType>
+    Expektid<NewValueType, ErrorType> mapButEasierToExplain(std::function<NewValueType(const ValueType&)> fun)
+    {
+        if (status != Status::Checked)
+        {
+            status = Status::Used;
+        }
+
+        if (hasValueInternal())
+        {
+            return fun(valueInternal());
+        }
+        else
+        {
+            return errorInternal();
+        }
+    }
+
     ErrorType& error()
     {
-        if (holdValue() || status != Status::Checked)
+        if (hasValueInternal() || status != Status::Checked)
         {
             logAndTerminate("error(): Value not checked or is not error.");
         }
 
-        return std::get<1>(result);
+        return errorInternal();
     }
 
 private:
-    [[nodiscard]] bool holdValue() const
+    bool hasValueInternal() const
     {
         return (result.index() == 0);
+    }
+
+    ValueType& valueInternal()
+    {
+        return std::get<0>(result);
+    }
+
+    ErrorType& errorInternal()
+    {
+        return std::get<1>(result);
     }
 
     [[noreturn]] static void logAndTerminate(std::string_view str)
