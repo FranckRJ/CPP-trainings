@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <iostream>
 #include <variant>
 
 #define EXPEKTID_CONCAT_STR_(first_, second_) first_##second_
