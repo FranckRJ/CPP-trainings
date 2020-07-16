@@ -26,6 +26,18 @@ Expektid<std::string, Error> callDoStuff(bool shouldSuccess)
     return combinedRes;
 }
 
+Expektid<std::string, Error> consumeStuff(const std::string& val)
+{
+    if (val.empty())
+    {
+        return std::string{"Ok"};
+    }
+    else
+    {
+        return Error{"not ok..."};
+    }
+}
+
 int main()
 {
     try
@@ -43,8 +55,12 @@ int main()
             std::cout << "Func failed with error: " << expected.error().message << "\n";
         }
 
-        auto size = expected.mapButEasierToExplain<std::size_t>(&std::string::size);
+        auto size = expected.map(&std::string::size).map([](auto i) { return i + 1; });
         std::cout << "Size of str is maybe: " << size.valueOr(153) << '\n';
+
+        //expected.value() = ""; // (un)comment to change what's printed
+        auto consumed = expected.then(&consumeStuff);
+        std::cout << "Consumed : " << (consumed ? *consumed : consumed.error().message) << '\n';
     }
     catch (const std::exception& e)
     {

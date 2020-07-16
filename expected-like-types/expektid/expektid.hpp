@@ -1,16 +1,17 @@
-#pragma warning(disable : 4068)
-#pragma ide diagnostic ignored "google-explicit-constructor"
-
 #pragma once
 
-#include <variant>
 #include <functional>
+#include <variant>
 
-#define EXPEKTID_CONCAT_STR_(first_, second_) first_ ## second_
-#define EXPEKTID_VAL_OR_RET_ERR(varName_, call_) auto EXPEKTID_CONCAT_STR_(tmp_, varName_) = call_; \
-    if (!EXPEKTID_CONCAT_STR_(tmp_, varName_)) return EXPEKTID_CONCAT_STR_(tmp_, varName_).error(); \
-    auto varName_ = EXPEKTID_CONCAT_STR_(tmp_, varName_).value();                                   \
-    do{}while(false)
+#define EXPEKTID_CONCAT_STR_(first_, second_) first_##second_
+#define EXPEKTID_VAL_OR_RET_ERR(varName_, call_)                                                                       \
+    auto EXPEKTID_CONCAT_STR_(tmp_, varName_) = call_;                                                                 \
+    if (!EXPEKTID_CONCAT_STR_(tmp_, varName_))                                                                         \
+        return EXPEKTID_CONCAT_STR_(tmp_, varName_).error();                                                           \
+    auto varName_ = EXPEKTID_CONCAT_STR_(tmp_, varName_).value();                                                      \
+    do                                                                                                                 \
+    {                                                                                                                  \
+    } while (false)
 
 template <class ValueType, class ErrorType>
 class [[nodiscard]] Expektid
@@ -22,6 +23,7 @@ private:
         Used,
         Checked
     };
+
 public:
     Expektid(const ValueType& val) : result{val}
     {
@@ -116,8 +118,8 @@ public:
         }
     }
 
-    template <typename NewValueType>
-    Expektid<NewValueType, ErrorType> mapButEasierToExplain(std::function<NewValueType(const ValueType&)> fun)
+    template <typename CallableType>
+    auto then(CallableType&& callable) -> decltype(std::invoke(callable, std::declval<ValueType>()))
     {
         if (status != Status::Checked)
         {
@@ -126,7 +128,7 @@ public:
 
         if (hasValueInternal())
         {
-            return fun(valueInternal());
+            return std::invoke(callable, valueInternal());
         }
         else
         {
